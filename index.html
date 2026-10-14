@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Enter student marks and calculate the total, average, highest and lowest scores.">
+  <title>Student Marks System</title>
+  <style>
+    /* CSS controls the appearance; it does not perform the calculations. */
+    :root { color-scheme: light; font-family: system-ui, sans-serif; color: #17342d; background: #f3f5ef; }
+    * { box-sizing: border-box; }
+    body { margin: 0; }
+    main { max-width: 900px; margin: auto; padding: 40px 20px; }
+    .eyebrow { color: #466b5d; font-weight: 700; font-size: .75rem; letter-spacing: .14em; text-transform: uppercase; }
+    h1 { font-size: clamp(2rem, 6vw, 3.2rem); letter-spacing: -.045em; margin: 12px 0; }
+    h2 { font-size: 1.25rem; margin: 0 0 12px; }
+    p { line-height: 1.6; }
+    .intro, .hint { color: #52665d; }
+    .panel { background: white; border: 1px solid #dbe3d8; border-radius: 18px; padding: 24px; margin-top: 24px; }
+    .step { display: inline-grid; place-items: center; border-radius: 50%; width: 28px; height: 28px; font-size: .9rem; background: #e6efdf; margin-right: 8px; }
+    label { display: block; font-weight: 600; margin-bottom: 8px; }
+    input { width: 100%; border: 1px solid #9faea5; border-radius: 8px; padding: 12px; font: inherit; background: #fff; color: #17342d; }
+    input:focus-visible, button:focus-visible { outline: 3px solid #b77a17; outline-offset: 3px; }
+    button { cursor: pointer; background: #1d5d47; color: white; border: 1px solid #1d5d47; border-radius: 8px; padding: 12px 18px; font: inherit; font-weight: 650; }
+    button:hover { background: #164a38; }
+    .secondary { background: white; color: #1d5d47; }
+    .secondary:hover { background: #eef4e9; }
+    .setup { display: flex; gap: 12px; align-items: end; flex-wrap: wrap; }
+    .setup > div { flex: 1; min-width: 180px; }
+    .hint { font-size: .875rem; margin: 10px 0 0; }
+    #mark-fields { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 18px; margin: 24px 0; }
+    .actions { display: flex; flex-wrap: wrap; gap: 10px; }
+    .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin: 20px 0; }
+    .stat { background: #f1f5eb; border-radius: 12px; padding: 16px; }
+    .stat dt { color: #52665d; font-size: .85rem; }
+    .stat dd { font-size: 1.8rem; font-weight: 700; margin: 6px 0 0; }
+    table { width: 100%; border-collapse: collapse; }
+    caption { text-align: left; font-weight: 650; margin-bottom: 10px; }
+    th, td { padding: 12px 8px; text-align: left; border-bottom: 1px solid #e1e7dc; }
+    th:last-child, td:last-child { text-align: right; }
+    .error { color: #a12c23; min-height: 1.5em; margin: 12px 0 0; }
+    footer { color: #52665d; font-size: .85rem; margin-top: 28px; }
+    [hidden] { display: none !important; }
+    @media (max-width: 540px) { .stats { grid-template-columns: repeat(2, 1fr); } .panel { padding: 20px; } main { padding-top: 24px; } }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <div class="eyebrow">Classroom tools / Marks calculator</div>
+      <h1>Every mark, accounted for.</h1>
+      <p class="intro">Enter your students’ marks and get a clear class report in seconds.</p>
+    </header>
+
+    <!-- HTML supplies the inputs and output areas that replace the terminal. -->
+    <section class="panel" aria-labelledby="setup-title">
+      <h2 id="setup-title"><span class="step">1</span> Set up your class</h2>
+      <form id="setup-form" novalidate>
+        <div class="setup">
+          <div>
+            <label for="student-count">Number of students</label>
+            <input id="student-count" type="number" min="1" max="500" step="1" placeholder="e.g. 3" required aria-describedby="count-hint setup-error">
+          </div>
+          <button type="submit">Create mark fields</button>
+        </div>
+        <p id="count-hint" class="hint">1–500 students. Creating new fields clears the current marks.</p>
+        <p id="setup-error" class="error" role="alert"></p>
+      </form>
+    </section>
+
+    <section id="marks-section" class="panel" aria-labelledby="marks-title" hidden>
+      <h2 id="marks-title"><span class="step">2</span> Enter marks</h2>
+      <p id="marks-hint" class="hint">Use whole numbers from 0 to 100 for each student.</p>
+      <form id="marks-form" novalidate>
+        <div id="mark-fields"></div>
+        <div class="actions">
+          <button type="submit">Calculate report</button>
+          <button id="clear" type="button" class="secondary">Clear marks</button>
+        </div>
+        <p id="marks-error" class="error" role="alert"></p>
+      </form>
+    </section>
+
+    <section id="report" class="panel" aria-labelledby="report-title" hidden>
+      <h2 id="report-title" tabindex="-1">Student marks report</h2>
+      <p id="report-summary" class="hint"></p>
+      <dl class="stats">
+        <div class="stat"><dt>Total marks</dt><dd id="total"></dd></div>
+        <div class="stat"><dt>Average / 100</dt><dd id="average"></dd></div>
+        <div class="stat"><dt>Highest / 100</dt><dd id="highest"></dd></div>
+        <div class="stat"><dt>Lowest / 100</dt><dd id="lowest"></dd></div>
+      </dl>
+      <table>
+        <caption>Individual results</caption>
+        <thead><tr><th scope="col">Student</th><th scope="col">Mark / 100</th></tr></thead>
+        <tbody id="report-rows"></tbody>
+      </table>
+    </section>
+    <footer>Marks stay in this browser tab. Refreshing or closing the page clears them.</footer>
+  </main>
+
+  <script>
+    // JavaScript runs in the browser. No Java installation or server is needed.
+    const countInput = document.getElementById('student-count');
+    const fields = document.getElementById('mark-fields');
+    const report = document.getElementById('report');
+    const setupError = document.getElementById('setup-error');
+    const marksError = document.getElementById('marks-error');
+
+    document.getElementById('setup-form').addEventListener('submit', function (event) {
+      event.preventDefault(); // Keep the form from reloading the page.
+      const numberOfStudents = Number(countInput.value);
+      if (countInput.value.trim() === '' || !Number.isInteger(numberOfStudents) || numberOfStudents < 1 || numberOfStudents > 500) {
+        setupError.textContent = 'Enter a whole number of students from 1 to 500.';
+        countInput.focus();
+        return;
+      }
+      setupError.textContent = '';
+      marksError.textContent = '';
+      fields.replaceChildren();
+      report.hidden = true;
+
+      // Like your Java for loop, create one input for each student.
+      for (let i = 0; i < numberOfStudents; i++) {
+        const wrapper = document.createElement('div');
+        const label = document.createElement('label');
+        label.htmlFor = 'mark-' + i;
+        label.textContent = 'Student ' + (i + 1);
+        const input = document.createElement('input');
+        input.id = 'mark-' + i;
+        input.type = 'number';
+        input.min = '0';
+        input.max = '100';
+        input.step = '1';
+        input.required = true;
+        input.placeholder = '0–100';
+        input.setAttribute('aria-describedby', 'marks-hint marks-error');
+        wrapper.append(label, input);
+        fields.append(wrapper);
+      }
+      document.getElementById('marks-section').hidden = false;
+      fields.querySelector('input').focus();
+    });
+
+    // This is the calculation logic from your Java program, translated to JS.
+    function calculateReport(marks) {
+      let total = 0;
+      let highest = 0;
+      let lowest = 100;
+      for (let i = 0; i < marks.length; i++) {
+        total = total + marks[i];
+        if (marks[i] > highest) highest = marks[i];
+        if (marks[i] < lowest) lowest = marks[i];
+      }
+      // JavaScript division already supports decimal results: no (double) cast.
+      const average = total / marks.length;
+      return { total, average, highest, lowest };
+    }
+
+    document.getElementById('marks-form').addEventListener('submit', function (event) {
+      event.preventDefault();
+      report.hidden = true;
+      marksError.textContent = '';
+      const inputs = fields.querySelectorAll('input');
+      const marks = [];
+      for (let i = 0; i < inputs.length; i++) {
+        const mark = Number(inputs[i].value);
+        if (inputs[i].value.trim() === '' || !Number.isInteger(mark) || mark < 0 || mark > 100) {
+          marksError.textContent = 'Student ' + (i + 1) + ': enter a whole-number mark from 0 to 100.';
+          inputs[i].focus();
+          return;
+        }
+        marks.push(mark);
+      }
+      if (marks.length === 0) return;
+      const result = calculateReport(marks);
+      document.getElementById('total').textContent = result.total;
+      document.getElementById('average').textContent = result.average.toFixed(2);
+      document.getElementById('highest').textContent = result.highest;
+      document.getElementById('lowest').textContent = result.lowest;
+      document.getElementById('report-summary').textContent = marks.length + (marks.length === 1 ? ' student included.' : ' students included.');
+      const rows = document.getElementById('report-rows');
+      rows.replaceChildren();
+      for (let i = 0; i < marks.length; i++) {
+        const row = document.createElement('tr');
+        const student = document.createElement('th');
+        student.scope = 'row';
+        student.textContent = 'Student ' + (i + 1);
+        const score = document.createElement('td');
+        score.textContent = marks[i];
+        row.append(student, score);
+        rows.append(row);
+      }
+      report.hidden = false;
+      document.getElementById('report-title').focus();
+    });
+
+    // Hide an old report when marks change, so it cannot show stale results.
+    fields.addEventListener('input', function () {
+      report.hidden = true;
+      marksError.textContent = '';
+    });
+    document.getElementById('clear').addEventListener('click', function () {
+      document.getElementById('marks-form').reset();
+      report.hidden = true;
+      marksError.textContent = '';
+      fields.querySelector('input').focus();
+    });
+  </script>
+</body>
+</html>
